@@ -1,0 +1,203 @@
+{% extends './base.html' %}
+{% block content %}
+<style>
+	.list_menu{
+		height: 100%;
+		padding: 0;
+		background: #008f8e;
+	}
+	.headers{
+		border: 1px gray solid;
+		text-align: center;
+	}
+
+	.list, .products{
+		height: 400px;
+		overflow-y: scroll;
+	}
+
+	.father{
+		height: 250px;
+		overflow-y: scroll;	
+	}
+
+	.list_product{
+		background: #57b7ae;
+	}
+
+	.item_menu{
+		border: 1px white solid;
+		height: 50px;
+	}
+	.name_item{
+		margin-top: 10%;
+		text-align: center;
+		color:white;
+		font-weight: bold;
+	}
+	@media screen and (height < 800px) {
+		.name_item{
+			margin-top: 5%;
+			text-align: center;
+		}
+	}
+	._table{
+		text-align: right;
+	}
+
+
+
+</style>
+<div class="container">
+	<div class="row p-2">
+		<div>
+			<span class="col-2">Mesa</span>
+			<input class="col-3 _table" type="number" value="1">
+		</div>
+	</div>
+</div>
+<div class="container-fluid">
+	<div class="row headers">
+		<div class="col-6">
+			<h1>Categorias</h1>
+		</div>
+		<div class="col-6">
+			<h1>Productos</h1>
+		</div>
+	</div>
+</div>
+<div class="container-fluid">
+	<div class="row">
+		<div class="col-6 list_menu">
+			<div class="row list">
+				{% for i in cat %}
+					<div class="col-6 item_menu cat" id="{{i.pk}}">
+						<h3 class="name_item">{{i.name}}</h3>
+					</div>
+				{% endfor %}
+				
+			</div>
+			
+		</div>
+		<div class="col-6 list_product">
+			<div class="products">
+				<div class="row col items_list_product">
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="container-fluid">
+	<div class="table-responsive">
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Producto</th>
+					<th>Cantidad</th>
+					<th>Acción</th>
+				</tr>
+			</thead>
+			<tbody class="father">
+
+			</tbody>
+		</table>
+	</div>
+</div>
+<div class="container">
+	<div class="row justify-content-center">
+		<button class="btn btn-primary send_order">
+			Enviar Pedido
+		</button>
+	</div>
+</div>
+
+{% endblock %}
+{% block script %}
+	
+	<script>
+		$(document).ready(function(){
+			var list_product = null;
+			$(".cat").click(function(){
+				id = this.id;
+				$.ajax({
+					url:"{% url 'List_Product' %}",
+					data:{'id':id},
+					success: function(e){
+						$(".items_list_product").empty()
+						list_product = JSON.parse(e)
+						for(i = 0; i < list_product.length; i++){
+							$(".items_list_product").append(`
+								<div class="col-6 item_product" id="${list_product[i].pk}" style="border: 1px white solid; height: 50px;">
+									<h4 class="name_item">${list_product[i].name}</h4>
+								</div>
+							`)			
+						}
+					}
+				})
+			})
+			var list_products = []
+
+			$(document).on('click','.less',function(){
+				var result = list_products.filter(product => product.id === id);
+				if(parseInt(result[0].quantity) >= 1){
+					result[0].quantity -= 1;
+				    $(".quantity"+id).text(result[0].quantity);
+				}
+				else{
+					$(".father").find('tr').remove();
+				}
+			});
+
+			$(document).on('click','.add',function(){
+				var result = list_products.filter(product => product.id === id);
+				result[0].quantity += 1;
+			    $(".quantity"+id).text(result[0].quantity);
+			});
+
+			$(document).on('click','.item_product',function(){
+			  id = this.id;
+			  for(i = 0; i < list_product.length; i++){
+			    if(id == list_product[i].pk){
+			      var result = list_products.filter(product => product.id === id);
+			      if(result.length > 0){
+			        result[0].quantity += 1;
+			        $(".quantity"+id).text(result[0].quantity);
+			      }
+			      else{
+			        var products = {};
+			        products.id = id;
+			        products.name = list_product[i].name;
+			        products.quantity = 1;
+			        list_products.push(products);
+			        $(".father").append(`
+			        	<tr class="product${id}" id="${id}">
+							<td>${products.name}</td>
+							<td class="quantity${id}">${products.quantity}</td>
+							<td class="">
+								<button class="btn btn-danger less" id="${id}" style="font-size: 15px; padding= -5px;">-</button>
+								<button class="btn add" id="${id}" style="background: #008f8e;color:white;font-size: 15px; padding= -5px;">+</button>
+							</td>
+						</tr>
+			        `)
+			      }
+			      break;
+			    }
+			  }
+			})
+
+
+			$(".send_order").click(function(){
+				$.ajax({
+					url:"{% url 'Send_Order' %}",
+					data:{'products':JSON.stringify(list_products)}
+				})
+			})
+
+
+
+
+
+		})
+	</script>
+
+{% endblock %}
